@@ -1,25 +1,11 @@
 # Architecture
 
-The game separates simulation rules from rendering so safety-critical progression can be tested without a GPU or browser.
+The domain engine holds plain, serializable campaign state. It accepts only actions offered by the current step and rejects terminal or out-of-order actions. UI buttons use the same transition function, so canvas rendering cannot bypass a rule. A mission can be retried without reloading the page.
 
-```mermaid
-flowchart LR
-    Input[Pointer and actions] --> UI[Three.js + HUD]
-    UI --> Engine[Dispensing state machine]
-    Mission[Mission definition] --> Engine
-    Engine --> Events[Audit events]
-    Engine --> Outcome[Score + avatar outcome]
-    Outcome --> UI
-```
+The Three.js scene uses procedural meshes and canvas-text labels. It has no remote models, textures or font dependencies. If WebGL fails, the decision interface remains usable. Progress writes are best-effort localStorage; the journal is local and exports only on request. The application makes no fetch requests.
 
-## State invariants
+`src/domain/` contains scenario content and transitions. `src/web/` contains the interface and scene. `scripts/build.js` bundles Three.js and app code into a single HTML file. `scripts/serve.js` is an optional development file server. `test/` checks the state machine rather than asserting incidental CSS or mesh details.
 
-1. A mission cannot accept materials before prescription verification.
-2. A hazardous contaminant ends the current run.
-3. An out-of-order selection never advances progression.
-4. Packaging and labeling are part of mission completion.
-5. Completion restores the simulated patient outcome only after every required step.
+All scenarios are deterministic. There is no live AI model in this release. Adding an AI coach later requires a separate reviewed content corpus, explicit uncertainty, evaluation against teacher rubrics, and server-side credentials. A model must not authorize clinical preparation or invent lesson rules.
 
-## Rendering strategy
-
-Three.js is the web renderer. The domain engine contains no browser APIs. This leaves a clean path for a later native renderer using Google Filament without duplicating gameplay rules.
+Future graphics work can explore a separate native Filament renderer against the same scenario format. Filament is not implemented here and is not required to play the browser game.

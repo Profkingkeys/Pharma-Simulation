@@ -1,30 +1,6 @@
-import test from "node:test";
-import assert from "node:assert/strict";
-import { DispensingGame, PHASES } from "../src/domain/game-engine.js";
-import { paracetamolSuspensionMission as mission } from "../src/domain/formulations.js";
-
-test("a safe complete run reaches recovery", () => {
-  const game = new DispensingGame(mission);
-  game.begin();
-  mission.selectionOrder.forEach((id) => game.selectIngredient(id));
-  mission.compoundingSteps.forEach(({ id }) => game.performStep(id));
-  assert.equal(game.phase, PHASES.COMPLETE);
-  assert.equal(game.health, 100);
-  assert.ok(game.score >= 1000);
-});
-
-test("the contaminant immediately fails the mission", () => {
-  const game = new DispensingGame(mission);
-  game.begin();
-  const state = game.selectIngredient("poison");
-  assert.equal(state.phase, PHASES.FAILED);
-  assert.equal(state.health, 0);
-});
-
-test("out-of-order material is rejected without advancing", () => {
-  const game = new DispensingGame(mission);
-  game.begin();
-  const state = game.selectIngredient("vehicle");
-  assert.equal(state.selectionIndex, 0);
-  assert.match(state.error, /Sequence rejected/);
-});
+import test from 'node:test';import assert from 'node:assert/strict';import {createGame,act,nextMission} from '../src/domain/game-engine.js';import {formulations} from '../src/domain/formulations.js';
+test('every reviewed workflow reaches release and complete exactly once',()=>{for(let i=0;i<formulations.length;i++){let s=createGame(i);for(const step of formulations[i].steps)s=act(s,step.id);assert.equal(s.status,'complete');assert.equal(s.score,formulations[i].steps.length*10);assert.equal(act(s,'release'),s);assert.equal(nextMission(s).mission,(i+1)%3)}});
+test('unknown material cannot be used or rescued by later release',()=>{let s=act(act(createGame(),'review'),'prepare');s=act(s,'unknown');assert.equal(s.status,'failed');assert.equal(act(s,'release'),s);assert.equal(s.score,20)});
+test('out-of-order, duplicate and unknown actions cannot advance score',()=>{let s=createGame();assert.equal(act(s,'release'),s);s=act(s,'review');assert.equal(act(s,'review'),s);assert.equal(act(s,'made-up'),s);assert.equal(s.score,10)});
+test('incorrect operations stop each mission and retry resets attempt',()=>{for(let i=0;i<3;i++){let s=createGame(i);s=act(s,'skip');assert.equal(s.status,'failed');assert.equal(nextMission(s),s);assert.equal(createGame(i).score,0)}});
+test('mission boundaries are validated',()=>{assert.throws(()=>createGame(-1),RangeError);assert.throws(()=>createGame(3),RangeError)});

@@ -1,62 +1,54 @@
 # Pharma Simulation
 
-An interactive Three.js training game for **extemporaneous dispensing**. The first mission places a pharmacy learner inside a virtual compounding chamber where floating materials must be identified, sequenced, processed, packaged, and labeled while a hazardous contaminant tests safety judgment.
+A complete browser campaign for learning the decisions in nonsterile extemporaneous dispensing.
 
-> Training software, not a validated compounding formula. Real quantities, patient-specific calculations, and clinical instructions are intentionally excluded.
+[Download the offline game](https://github.com/Profkingkeys/Pharma-Simulation/releases/latest/download/Pharma-Simulation.html) · [Build status](https://github.com/Profkingkeys/Pharma-Simulation/actions/workflows/ci.yml) · [Collection](https://github.com/Profkingkeys/Simulation-Games)
 
-## Play loop
+## Play without a server
 
-```mermaid
-flowchart TD
-    A[Verify prescription] --> B[Enter 3D chamber]
-    B --> C{Select material}
-    C -->|Safe and in sequence| D[Dispensing operations]
-    C -->|Contaminant| F[Mission failed]
-    D --> E[Package, label, counsel]
-    E --> G[Patient avatar recovers]
+Download **Pharma-Simulation.html** from [Releases](https://github.com/Profkingkeys/Pharma-Simulation/releases), save it on your device, and open it in a modern browser. Three.js, game code and styling are bundled inside that one file. There is no account, API key, backend, CDN, font download or multiplayer service. If a mobile file manager only previews the document, use its “Open with browser” option or the hosted version after Pages is enabled.
+
+The `index.html` at the repository root is the **development template**. Downloading that file alone will not run the game. The release file is the self-contained playable build.
+
+## One continuous campaign
+
+**Suspension chamber → ointment studio → solution suite.** Complete a mission and continue inside the same game. Make decisions using touch-friendly buttons or keyboard Tab/Enter. Every gameplay decision is available outside the canvas. The scene includes recognizable furniture/equipment, labels and an animated character. Reduced motion, pause, a teaching card, retry and downloadable attempt reports are built in. Completed missions are saved locally; no data is uploaded.
+
+The three preparation methods have different teaching sequences. Wrong choices stop release; an unknown material must be quarantined. A symbolic virtual-patient failure animation explains the consequence without claiming to model pharmacology. Self-administration is never a quality check. Floating holograms represent inventory categories, not chemical synthesis. There are no real doses, concentrations, recipes or universal beyond-use dates.
+
+## Build from source
+
+Install Node.js 22 LTS or later and npm. From this directory:
+
+```bash
+npm ci
+npm test
+npm run build
 ```
 
-The game is a single cohesive experience. Its rendering layer uses Three.js, while a framework-independent domain engine owns the rules, score, patient outcome, and auditable event sequence.
-
-## Run locally
+Open **dist/index.html** directly in your browser. Alternatively:
 
 ```bash
 npm start
 ```
 
-Open the URL printed by the local server. The renderer imports a pinned Three.js browser module. The game logic itself has no runtime dependency.
+Then open http://localhost:4173. This optional local HTTP server only serves files. It does not calculate gameplay, store patient records or run AI. A future multiplayer or securely authenticated AI service would need a backend; this release does not.
 
-## Test
+## Put the game online with GitHub Pages
 
-```bash
-npm test
-npm run check
-```
+1. Open [this repository’s Pages settings](https://github.com/Profkingkeys/Pharma-Simulation/settings/pages), not your personal profile settings.
+2. Under **Build and deployment**, choose **GitHub Actions** as Source.
+3. Open Actions → **Deploy game to Pages** → **Run workflow**.
+4. Use the URL reported by the deployment job. The expected project path is `https://profkingkeys.github.io/Pharma-Simulation/` unless you configure a custom domain.
 
-The test suite verifies the safe completion route, contaminant failure, and order enforcement.
+Pages serves the exact static bundle. No application server is required. See [GitHub’s publishing-source instructions](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
 
-## Architecture
+## What has been checked
 
-| Layer | Responsibility |
-|---|---|
-| `src/domain` | Mission definition and deterministic state machine |
-| `src/web` | Three.js chamber, interaction, HUD, animation |
-| `test` | Safety and progression invariants |
-| `.github/workflows` | Tests, syntax checks, and Pages deployment |
+The CI gate runs the domain tests, JavaScript syntax checks and production bundling. Tests cover campaign completion, blocked invalid transitions, retry behavior and duplicate-scoring prevention. A successful build produces an offline artifact and a versioned downloadable release.
 
-## Roadmap
+This is an educational prototype. A licensed pharmacist and local curriculum reviewer must validate the content before assessment or formal teaching. It is not a compounding standard, a clinical decision tool or a treatment simulator. Graphics use original procedural geometry. Three.js is MIT licensed; its license is retained in the distribution.
 
-- pharmacist-reviewed mission content and assessment rubric
-- multiple extemporaneous dosage-form missions
-- accessibility mode without 3D motion
-- learning analytics using privacy-preserving event summaries
-- optional Filament renderer for high-fidelity native/mobile builds
-- instructor dashboard and standards mapping
+See [architecture](ARCHITECTURE.md), [teacher notes](TEACHER_NOTES.md) and [contributing](CONTRIBUTING.md).
 
-## Safety and scope
-
-No player action should be treated as a real preparation method. Future clinical-learning content should pass pharmacist review, curriculum mapping, usability testing, and validation before classroom use.
-
-## License
-
-Source code is available under the MIT License. Educational content remains subject to review before real teaching deployment.
+If this has impacted you in any way, follow [Kingsley on GitHub](https://github.com/Profkingkeys), [X (Twitter)](https://x.com/Profkingkeys), and [LinkedIn](https://www.linkedin.com/in/prof-king-keys-110a24229).

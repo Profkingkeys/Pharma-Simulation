@@ -1,0 +1,13 @@
+import { build } from 'esbuild';
+import { readFile, mkdir, writeFile, copyFile } from 'node:fs/promises';
+const result=await build({entryPoints:['src/web/main.js'],bundle:true,format:'iife',target:['es2020'],minify:true,legalComments:'inline',write:false});
+const template=await readFile('index.html','utf8');
+const css=await readFile('src/web/styles.css','utf8');
+const script=result.outputFiles[0].text.replace(/<\/script/gi,'<\\/script');
+const html=template.replace('<link rel="stylesheet" href="./src/web/styles.css">',()=>`<style>${css}</style>`).replace('<script type="module" src="./src/web/main.js"></script>',()=>`<script>${script}</script>`);
+await mkdir('dist',{recursive:true});
+await writeFile('dist/index.html',html);
+await writeFile('dist/.nojekyll','');
+await copyFile('LICENSE','dist/LICENSE.txt');
+await copyFile('node_modules/three/LICENSE','dist/THREE-LICENSE.txt');
+console.log(`Standalone build: dist/index.html (${Math.round(Buffer.byteLength(html)/1024)} KiB). No network or game backend required.`);

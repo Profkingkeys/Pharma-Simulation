@@ -1,11 +1,12 @@
 name: quality-gates
 on:
   push:
+    branches: [main]
   pull_request:
 permissions:
   contents: read
 jobs:
-  test:
+  test-and-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -13,5 +14,33 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - run: npm ci
       - run: npm test
       - run: npm run check
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pharma-simulation-offline
+          path: dist/
+  release:
+    if: github.event_name == 'push'
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: pharma-simulation-offline
+          path: dist
+      - name: Publish the tested offline build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cp dist/index.html dist/Pharma-Simulation.html
+          if ! gh release view v0.2.0 >/dev/null 2>&1; then
+            gh release create v0.2.0 --target "$GITHUB_SHA" --title "Pharma Simulation 0.2.0" --notes "Standalone browser campaign. Download the HTML file and open it in your browser. Educational prototype; see teacher notes for review boundaries."
+          fi
+          gh release upload v0.2.0 dist/Pharma-Simulation.html dist/LICENSE.txt dist/THREE-LICENSE.txt --clobber

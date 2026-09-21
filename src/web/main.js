@@ -1,152 +1,23 @@
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-import { DispensingGame, PHASES } from "../domain/game-engine.js";
-import { paracetamolSuspensionMission as mission } from "../domain/formulations.js";
-
-const canvas = document.querySelector("#lab");
-const objective = document.querySelector("#objective");
-const health = document.querySelector("#health");
-const score = document.querySelector("#score");
-const status = document.querySelector("#status");
-const actions = document.querySelector("#actions");
-const panel = document.querySelector("#mission-panel");
-const title = document.querySelector("#mission-title");
-const copy = document.querySelector("#mission-copy");
-const game = new DispensingGame(mission);
-
-title.textContent = mission.title;
-copy.textContent = `${mission.patient.condition}. Enter the chamber, identify the safe materials, reject the contaminant, and complete the simulated dispensing workflow.`;
-objective.textContent = mission.learningObjectives.join(" • ");
-
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(innerWidth, innerHeight);
-renderer.setAnimationLoop(render);
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x050914);
-scene.fog = new THREE.FogExp2(0x050914, 0.045);
-const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 100);
-camera.position.set(0, 4.2, 10);
-
-scene.add(new THREE.HemisphereLight(0xaadfff, 0x14213d, 2.2));
-const key = new THREE.PointLight(0x58f5ca, 60, 24);
-key.position.set(0, 5, 2);
-scene.add(key);
-
-const chamber = new THREE.Mesh(
-  new THREE.CylinderGeometry(7, 7, 7, 32, 1, true),
-  new THREE.MeshStandardMaterial({ color: 0x18304c, transparent: true, opacity: 0.24, side: THREE.BackSide })
-);
-chamber.position.y = 2.5;
-scene.add(chamber);
-
-const floor = new THREE.Mesh(
-  new THREE.CircleGeometry(7, 64),
-  new THREE.MeshStandardMaterial({ color: 0x0a1628, metalness: 0.65, roughness: 0.35 })
-);
-floor.rotation.x = -Math.PI / 2;
-floor.position.y = -1;
-scene.add(floor);
-
-const ingredientMeshes = [];
-mission.ingredients.forEach((ingredient, index) => {
-  const group = new THREE.Group();
-  const core = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(0.48, 2),
-    new THREE.MeshStandardMaterial({
-      color: ingredient.color,
-      emissive: ingredient.color,
-      emissiveIntensity: ingredient.hazard ? 0.9 : 0.28,
-      metalness: 0.2,
-      roughness: 0.28,
-    })
-  );
-  const electron = new THREE.Mesh(
-    new THREE.TorusGeometry(0.78, 0.025, 8, 48),
-    new THREE.MeshBasicMaterial({ color: ingredient.color, transparent: true, opacity: 0.72 })
-  );
-  electron.rotation.x = index * 0.7;
-  group.add(core, electron);
-  const angle = (index / mission.ingredients.length) * Math.PI * 2;
-  group.position.set(Math.cos(angle) * 4.3, 1.4 + (index % 2) * 1.35, Math.sin(angle) * 3.1);
-  group.userData = { ingredient, baseY: group.position.y, offset: index };
-  ingredientMeshes.push(group);
-  scene.add(group);
-});
-
-const raycaster = new THREE.Raycaster();
-const pointer = new THREE.Vector2();
-canvas.addEventListener("pointerdown", (event) => {
-  if (game.phase !== PHASES.SELECTING) return;
-  pointer.x = (event.clientX / innerWidth) * 2 - 1;
-  pointer.y = -(event.clientY / innerHeight) * 2 + 1;
-  raycaster.setFromCamera(pointer, camera);
-  const hits = raycaster.intersectObjects(ingredientMeshes, true);
-  if (!hits.length) return;
-  const group = ingredientMeshes.find((candidate) => candidate === hits[0].object.parent || candidate === hits[0].object);
-  if (!group) return;
-  const state = game.selectIngredient(group.userData.ingredient.id);
-  if (!state.error && state.phase !== PHASES.FAILED) group.visible = false;
-  update(state, group.userData.ingredient.label);
-});
-
-document.querySelector("#begin").addEventListener("click", () => {
-  panel.hidden = true;
-  update(game.begin());
-});
-document.querySelector("#restart").addEventListener("click", reset);
-
-function reset() {
-  ingredientMeshes.forEach((mesh) => { mesh.visible = true; });
-  panel.hidden = false;
-  document.body.classList.remove("failed", "complete");
-  update(game.reset());
-}
-
-function update(state, selectedLabel = "") {
-  health.value = state.health;
-  score.textContent = `Score ${state.score}`;
-  actions.replaceChildren();
-
-  if (state.error) status.textContent = state.error;
-  else if (state.phase === PHASES.SELECTING) status.textContent = selectedLabel ? `${selectedLabel} accepted. Select the next material.` : "Select the floating materials in the safe workflow order.";
-  else if (state.phase === PHASES.COMPOUNDING) status.textContent = "Materials secured. Complete the dispensing operations.";
-  else if (state.phase === PHASES.COMPLETE) {
-    status.textContent = "Mission passed. The preparation cleared the training checks and the patient avatar recovered.";
-    document.body.classList.add("complete");
-  } else if (state.phase === PHASES.FAILED) {
-    status.textContent = "Mission failed. The contaminant entered the preparation. The avatar has collapsed.";
-    document.body.classList.add("failed");
-  }
-
-  if (state.phase === PHASES.COMPOUNDING) {
-    mission.compoundingSteps.forEach((step, index) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = step.label;
-      button.disabled = index < state.stepIndex;
-      button.addEventListener("click", () => update(game.performStep(step.id)));
-      actions.append(button);
-    });
-  }
-}
-
-function render(time) {
-  const seconds = time * 0.001;
-  ingredientMeshes.forEach((mesh) => {
-    mesh.rotation.y += 0.006;
-    mesh.rotation.x = Math.sin(seconds * 0.7 + mesh.userData.offset) * 0.18;
-    mesh.position.y = mesh.userData.baseY + Math.sin(seconds + mesh.userData.offset) * 0.22;
-  });
-  camera.position.x = Math.sin(seconds * 0.08) * 1.4;
-  camera.lookAt(0, 1.4, 0);
-  renderer.render(scene, camera);
-}
-
-addEventListener("resize", () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-});
-
-update(game.snapshot());
+import {formulations} from '../domain/formulations.js';
+import {createGame,act,nextMission} from '../domain/game-engine.js';
+import {THREE,createWorld,box,ball,tube,label,person,safeStorage,saveReport} from './scene-kit.js';
+const $=id=>document.getElementById(id);let state=createGame(),paused=false,reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const stored=safeStorage('pharma-v2-completed');let completed=new Set((Array.isArray(stored)?stored:[]).filter(x=>formulations.some(m=>m.id===x)));
+let world,avatar,pestle,solution,unknown,particles=[],rayTargets=[];
+$('boundary').textContent='Educational prototype for nonsterile extemporaneous dispensing. Holograms symbolize verified materials; they are not molecular synthesis. No doses or real recipes are provided. Requires pharmacist and curriculum review before formal training use.';
+$('scene-note').textContent='Use the decision buttons below. Material holograms are symbolic. Full gameplay works offline.';
+function render(){const m=formulations[state.mission],step=m.steps[state.step];document.body.classList.toggle('failed',state.status==='failed');$('edition').textContent=`Learning campaign / ${String(state.mission+1).padStart(2,'0')}`;$('title').textContent=m.name;$('brief').textContent=m.brief;$('chapter').textContent=m.medicine;$('progress').max=m.steps.length;$('progress').value=state.step;$('score').textContent=state.score;$('saved').textContent=`${completed.size} / ${formulations.length}`;$('card').replaceChildren();const para=document.createElement('p');para.textContent=m.card;$('card').append(para);const ol=document.createElement('ol');for(const s of m.steps){const li=document.createElement('li');li.textContent=s.title;ol.append(li)}$('card').append(ol);$('objective').textContent=state.status==='complete'?'Mission complete':state.status==='failed'?'Review and try again':step.title;$('feedback').textContent=paused?'Game paused. Resume when you are ready.':state.feedback;$('status').textContent=paused?'Paused':state.status==='playing'?`Decision ${state.step+1} / ${m.steps.length}`:state.status;$('actions').replaceChildren();if(state.status==='playing')for(const [id,title] of step.choices){const b=document.createElement('button');b.textContent=title;b.disabled=paused;b.onclick=()=>choose(id);$('actions').append(b)}$('next').hidden=state.status!=='complete';$('next').textContent=state.mission===2?'Replay the campaign →':'Enter the next chamber →';$('next').disabled=paused;$('journal').replaceChildren();for(const item of state.journal){const li=document.createElement('li');li.textContent=`${item.correct?'✓':'↺'} ${item.lesson}`;$('journal').append(li)}$('motion').setAttribute('aria-pressed',String(reduced));$('motion').textContent=reduced?'Motion reduced':'Reduce motion';if(unknown)unknown.visible=state.step<3;if(solution)solution.material.color.set(state.status==='failed'?0xb56479:state.status==='complete'?0x91e2ab:0x68cbd4);}
+function choose(id){if(paused)return;state=act(state,id);if(state.status==='complete'){completed.add(formulations[state.mission].id);safeStorage('pharma-v2-completed',[...completed]);}render();}
+$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'Resume':'Pause';render()};$('motion').onclick=()=>{reduced=!reduced;render()};$('retry').onclick=()=>{state=createGame(state.mission);render()};$('next').onclick=()=>{state=nextMission(state);render()};$('export').onclick=()=>saveReport('pharma-attempt.json',{game:'Pharma Simulation',version:'0.2.0',case:formulations[state.mission].id,...state});render();
+try{world=createWorld($('world'));const {scene}=world;
+ box(scene,0,-.2,0,13,.4,10,0x163c44);box(scene,0,2,-4.7,13,4,.25,0x174954);box(scene,-6.35,1.5,0,.25,3,9.5,0x10303b);
+ for(let x=-5;x<6;x+=2)box(scene,x,.015,0,.02,.02,9,0x326069);for(let z=-4;z<5;z+=2)box(scene,0,.016,z,12,.02,.02,0x326069);
+ box(scene,0,1.12,0,6,.23,2.3,0xd5e4de);box(scene,-2,0.55,0,1.3,1.1,1.9,0x335862);box(scene,2,.55,0,1.3,1.1,1.9,0x335862);
+ tube(scene,-1.5,1.5,0,.65,.4,.45,0xc9d8d1);pestle=tube(scene,-1.48,1.95,0,.13,.2,.85,0xd8e4d8);pestle.rotation.z=.6;label(scene,'Preparation bench',0,2.85,1,3.5);
+ tube(scene,1.1,1.65,0,.5,.5,.95,0xb4e8f1,true);solution=tube(scene,1.1,1.43,0,.45,.45,.48,0x68cbd4);
+ box(scene,4,1.5,-3,3,.15,1,0x7eaaa7);box(scene,4,.65,-3,3,.15,1,0x7eaaa7);for(let i=0;i<5;i++){tube(scene,2.9+i*.55,1.9,-3,.18,.2,.65,i%2?0xbb8950:0x609c89);box(scene,2.9+i*.55,2.25,-3,.21,.15,.21,0x132b2e);}label(scene,'Verified inventory',4,2.9,-3,3);
+ const colors=[0x8ef2c5,0x7fb3ff,0xf4d687,0xef839a];for(let i=0;i<4;i++){const g=new THREE.Group();g.position.set(-4.5+i*2.4,3.4,-2);for(let j=0;j<3;j++){ball(g,(j-1)*.28,Math.sin(j*2)*.18,0,.19,colors[i]);if(j<2){const bond=box(g,(j-.5)*.28,0,0,.28,.06,.06,0xb3ccd1);bond.rotation.z=.2;}}scene.add(g);label(g,['Active','Medium','Vehicle','UNKNOWN'][i],0,.6,0,1.8,i===3?'#ffb4bd':'#d6fff2');particles.push(g);if(i===3)unknown=g;}
+ box(scene,-4.5,.75,2.5,1.4,1.5,1.2,0x477976);box(scene,-4.5,1.58,2.5,1.6,.18,1.4,0xadd5c5);label(scene,'Independent check',-4.4,2.65,2.5,2.7);
+ avatar=person(scene,4,2.5,0xa8d3d4);label(scene,'Virtual patient',4,2.55,2.5,2.5);label(scene,'PHARMWEB3  /  DISPENSING LAB',0,4.5,-4.5,6);
+}catch(e){$('fallback').hidden=false;console.warn('WebGL unavailable; accessible gameplay remains active.',e.message)}render();
+let last=performance.now(),elapsed=0;function frame(now){const dt=Math.min((now-last)/1000,.05);last=now;if(!paused&&!reduced)elapsed+=dt;if(world){if(!paused){for(let i=0;i<particles.length;i++){particles[i].position.y=3.4+(reduced?0:Math.sin(elapsed+i)*.14);particles[i].rotation.y=reduced?0:elapsed*.2;}if(avatar){const target=state.status==='failed'?-1.12:0;avatar.group.rotation.z+=(target-avatar.group.rotation.z)*(reduced?1:Math.min(1,dt*4));}if(pestle)pestle.rotation.z=.6+(!reduced&&state.step>3&&state.step<7?Math.sin(elapsed*3)*.2:0);}world.renderer.render(world.scene,world.camera)}requestAnimationFrame(frame)}requestAnimationFrame(frame);

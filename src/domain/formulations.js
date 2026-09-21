@@ -1,31 +1,18 @@
-export const paracetamolSuspensionMission = Object.freeze({
-  id: "paracetamol-suspension-foundation",
-  title: "Stage 1: Paracetamol Suspension",
-  patient: {
-    condition: "Fever and pain",
-    initialHealth: 45,
-  },
-  learningObjectives: [
-    "Verify the prescription before preparation",
-    "Reject unlabelled or hazardous material",
-    "Follow the simulated extemporaneous-dispensing sequence",
-    "Complete packaging, labeling, and counseling checks",
-  ],
-  ingredients: [
-    { id: "api", label: "Paracetamol API", color: 0x62d9ff, role: "active ingredient" },
-    { id: "wetting", label: "Wetting vehicle", color: 0x8ff0c9, role: "dispersion aid" },
-    { id: "suspending", label: "Suspending agent", color: 0xb7a7ff, role: "physical stability" },
-    { id: "flavour", label: "Flavour", color: 0xffd166, role: "palatability" },
-    { id: "vehicle", label: "Purified water vehicle", color: 0x6fb1ff, role: "final vehicle" },
-    { id: "poison", label: "Unlabelled corrosive", color: 0xff3158, role: "contaminant", hazard: true },
-  ],
-  selectionOrder: ["api", "wetting", "suspending", "flavour", "vehicle"],
-  compoundingSteps: [
-    { id: "triturate", label: "Reduce and homogenize powder" },
-    { id: "levigate", label: "Levigate to a smooth paste" },
-    { id: "dilute", label: "Incorporate by geometric dilution" },
-    { id: "finish", label: "Complete vehicle and homogenize" },
-    { id: "package", label: "Package in a suitable container" },
-    { id: "label", label: "Label, counsel, and document" },
-  ],
-});
+// Abstract classroom workflow cards, NOT dispensing formulae or clinical protocols.
+const sharedStart=[
+ {id:'review',title:'Review the fictional prescription',choices:[['review','Review identity, indication and authorization'],['skip','Skip the prescription review']],why:'Every preparation starts with a valid prescription and patient-specific review.'},
+ {id:'prepare',title:'Prepare the work area',choices:[['prepare','Clean the bench and check equipment'],['skip','Use the previous preparation setup']],why:'A clean, suitable work area reduces mix-ups and cross-contamination.'},
+ {id:'quarantine',title:'A container has no verified identity',choices:[['quarantine','Quarantine the unknown container'],['unknown','Add the unknown material to the mix']],why:'An unidentified ingredient must never enter a preparation. Quarantine it and investigate.'},
+ {id:'verify',title:'Verify the approved materials',choices:[['verify','Check identity, integrity, expiry and teaching card'],['skip','Choose materials by color alone']],why:'Appearance and a floating graphic cannot establish pharmaceutical identity.'}
+];
+const finish=[
+ {id:'check',title:'Inspect the finished preparation',choices:[['check','Check uniformity and reconcile the preparation record'],['skip','Assume it is correct because it looks familiar']],why:'Inspection and records support an independent check; appearance alone cannot prove quality.'},
+ {id:'package',title:'Choose the specified container',choices:[['package','Use the container specified by the reviewed formula'],['skip','Use any open container on the bench']],why:'Packaging suitability depends on the formulation, route and stability evidence.'},
+ {id:'label',title:'Complete the dispensing label',choices:[['label','Apply verified instructions, storage and documented BUD'],['skip','Invent a universal expiry date']],why:'Beyond-use dating must come from applicable standards and stability evidence, not a game or an AI guess.'},
+ {id:'release',title:'Request the final release check',choices:[['release','Independent check, then explain use to the virtual patient'],['self','Take the preparation yourself to test it']],why:'Never taste or self-administer a compounded medicine to test its quality.'}
+];
+export const formulations=[
+ {id:'suspension',name:'The suspension chamber',medicine:'Paracetamol · fictional teaching case',brief:'Prepare a simulated nonsterile oral suspension through a complete dispensing workflow.',materials:['Verified active material','Reviewed wetting vehicle','Specified suspension vehicle'],method:[['levigate','Levigate the verified powder with the reviewed wetting vehicle','Reduce agglomerates using the technique in the approved teaching formula.'],['incorporate','Incorporate the specified vehicle gradually','The virtual batch becomes uniform as the approved vehicle is incorporated.'],['homogenize','Mix and inspect redispersibility','Suspensions require appropriate uniformity and redispersibility checks.']],card:'This abstract case assumes a reviewed formulation suitable for suspension. Actual quantities, concentrations, excipients, equipment settings and beyond-use dates are deliberately omitted. Follow the displayed workflow, never infer a real recipe.'},
+ {id:'ointment',name:'The ointment studio',medicine:'Nonsterile semisolid · fictional teaching case',brief:'Use a different preparation method while keeping the same professional dispensing controls.',materials:['Verified powder','Compatible levigating medium','Specified ointment base'],method:[['levigate','Levigate the verified powder with the compatible medium','The teaching formula specifies a smooth levigated paste.'],['dilute','Incorporate the base by geometric dilution','Add comparable portions as taught in this abstract workflow, checking uniformity.'],['homogenize','Finish mixing and inspect texture','The target is a consistent semisolid without visible grittiness in this model.']],card:'This card models an insoluble powder dispersed in a compatible semisolid base. Geometric dilution is shown conceptually. A different formulation may require a different process.'},
+ {id:'solution',name:'The solution suite',medicine:'Nonsterile solution · fictional teaching case',brief:'Recognize how a dissolution workflow differs from a suspension or an ointment.',materials:['Verified soluble material','Compatible solvent','Specified final vehicle'],method:[['dissolve','Dissolve the material in the specified compatible solvent','This virtual ingredient is assumed soluble under the reviewed teaching conditions.'],['incorporate','Add the remaining vehicle as the card specifies','This model omits quantitative instructions. Real preparation requires a verified formula.'],['homogenize','Mix and inspect the solution','Unexpected particles or a change in appearance require investigation.']],card:'This case assumes the reviewed ingredients are soluble and compatible. Clear appearance cannot establish correct identity, potency, sterility or stability.'}
+].map(m=>({...m,steps:[...sharedStart,...m.method.map(([id,title,why])=>({id,title,why,choices:[[id,title],['wrong','Skip this step and proceed to the next operation']]})),...finish]}));

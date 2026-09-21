@@ -1,20 +1,15 @@
-import { createServer } from "node:http";
-import { createReadStream, statSync } from "node:fs";
-import { extname, join, normalize } from "node:path";
-
-const port = Number(process.env.PORT || 4173);
-const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml" };
-
-createServer((request, response) => {
-  const requested = request.url === "/" ? "/index.html" : request.url.split("?")[0];
-  const path = normalize(join(process.cwd(), requested));
-  if (!path.startsWith(process.cwd())) { response.writeHead(403).end(); return; }
-  try {
-    if (!statSync(path).isFile()) throw new Error("not a file");
-    response.writeHead(200, { "content-type": types[extname(path)] || "application/octet-stream" });
-    createReadStream(path).pipe(response);
-  } catch {
-    response.writeHead(404, { "content-type": "text/plain" });
-    response.end("Not found");
-  }
-}).listen(port, () => console.log(`Pharma Simulation: http://localhost:${port}`));
+import { createServer } from 'node:http';
+import { readFile, stat } from 'node:fs/promises';
+import { resolve, sep, extname } from 'node:path';
+const root=resolve('dist');
+const port=Number(process.env.PORT||4173);
+try { await stat(root+'/index.html'); } catch { console.error('Run npm run build first.');process.exit(1); }
+createServer(async(req,res)=>{
+ try {
+  const path=resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));
+  if(path!==root&&!path.startsWith(root+sep)){res.writeHead(403).end();return;}
+  const file=path===root?root+'/index.html':path;
+  const data=await readFile(file);
+  res.writeHead(200,{'content-type':extname(file)==='.html'?'text/html; charset=utf-8':'text/plain','x-content-type-options':'nosniff'});res.end(data);
+ }catch{res.writeHead(404).end('Not found');}
+}).listen(port,'0.0.0.0',()=>console.log('Pharma Simulation: http://localhost:'+port));
