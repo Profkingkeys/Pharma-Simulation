@@ -1,0 +1,25 @@
+:root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; overflow: hidden; background: #050914; color: #f4f8ff; }
+#lab { width: 100vw; height: 100vh; display: block; }
+.hud { position: fixed; inset: 1.25rem auto auto 1.25rem; width: min(30rem, calc(100vw - 2.5rem)); padding: 1.15rem; border: 1px solid #7cebcf44; border-radius: 1rem; background: #07111dd9; backdrop-filter: blur(18px); box-shadow: 0 1rem 4rem #0008; }
+h1, h2, p { margin-top: 0; }
+h1 { margin-bottom: .45rem; font-size: clamp(1.35rem, 3vw, 2.25rem); }
+.eyebrow { color: #6fffd7; font-size: .7rem; letter-spacing: .15em; }
+#objective { color: #afbdd0; font-size: .82rem; line-height: 1.5; }
+.meters { display: flex; justify-content: space-between; gap: 1rem; align-items: center; font-size: .78rem; }
+meter { width: 8rem; accent-color: #59edbd; }
+.status { margin: .9rem 0; padding: .8rem; border-left: 3px solid #59edbd; background: #ffffff09; line-height: 1.45; }
+.actions { display: grid; gap: .45rem; max-height: 32vh; overflow: auto; }
+button { border: 0; border-radius: .65rem; padding: .72rem .85rem; color: #02100c; background: #65efc8; font-weight: 750; cursor: pointer; }
+button:hover { filter: brightness(1.08); }
+button:disabled { opacity: .35; cursor: default; }
+.secondary { width: 100%; margin-top: .75rem; color: #dce8f7; background: #ffffff12; }
+.legend { margin-top: .8rem; color: #91a3ba; font-size: .72rem; }
+.legend span { display: inline-block; width: .55rem; height: .55rem; margin: 0 .3rem 0 .7rem; border-radius: 50%; }
+.legend .safe { background: #62d9ff; }.legend .hazard { background: #ff3158; }
+.mission-panel { position: fixed; inset: 50% auto auto 50%; transform: translate(-50%, -50%); width: min(34rem, calc(100vw - 2rem)); padding: 2rem; border: 1px solid #ffffff26; border-radius: 1.2rem; background: #07111df2; box-shadow: 0 1rem 7rem #000; text-align: center; }
+.mission-panel small { display: block; margin-top: 1rem; color: #91a3ba; line-height: 1.4; }
+.failed #lab { filter: saturate(.45) sepia(.4) hue-rotate(305deg); transform: rotate(1deg) scale(1.02); }
+.complete .hud { border-color: #65efc8; box-shadow: 0 0 4rem #65efc833; }
+@media (max-width: 680px) { .hud { inset: .6rem .6rem auto; width: auto; } .actions { max-height: 22vh; } }
